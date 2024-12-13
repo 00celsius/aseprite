@@ -226,7 +226,7 @@ public:
       //      tilemap layer to preview the selection, or 2) using a
       //      path to show the selection (so there is no preview layer
       //      at all and nor ExpandCelCanvas)
-      if (m_ink->isSelection())
+      if (m_ink->isSelection() || m_ink->isSlice())
         site.tilemapMode(TilemapMode::Pixels);
     }
 
@@ -358,6 +358,15 @@ public:
   bool isPixelConnectivityEightConnected() override {
     return (m_toolPref.floodfill.pixelConnectivity()
             == app::gen::PixelConnectivity::EIGHT_CONNECTED);
+  }
+
+  bool isPointInsideCanvas(const gfx::Point& point) override {
+    const int a = ((getTiledMode() == TiledMode::X_AXIS ||
+                    getTiledMode() == TiledMode::BOTH) ? 3 : 1);
+    const int b = ((getTiledMode() == TiledMode::Y_AXIS ||
+                    getTiledMode() == TiledMode::BOTH) ? 3 : 1);
+    return 0 <= point.x && point.x < a * sprite()->size().w &&
+           0 <= point.y && point.y < b * sprite()->size().h;
   }
 
   const doc::Grid& getGrid() const override { return m_grid; }
@@ -529,7 +538,7 @@ public:
         ExpandCelCanvas::NeedsSource |
         (m_layer->isTilemap() &&
          (!m_tilesMode ||
-          m_ink->isSelection()) ? ExpandCelCanvas::PixelsBounds:
+          isSelectionPreview) ? ExpandCelCanvas::PixelsBounds:
                                   ExpandCelCanvas::None) |
         (m_layer->isTilemap() &&
          site.tilemapMode() == TilemapMode::Pixels &&
@@ -762,7 +771,8 @@ static void adjust_ink_for_tilemaps(const Site& site,
                                     ToolLoopParams& params)
 {
   if (!params.ink->isSelection() &&
-      !params.ink->isEraser()) {
+      !params.ink->isEraser() &&
+      !params.ink->isSlice()) {
     params.ink = App::instance()->toolBox()->getInkById(tools::WellKnownInks::PaintCopy);
   }
 }
